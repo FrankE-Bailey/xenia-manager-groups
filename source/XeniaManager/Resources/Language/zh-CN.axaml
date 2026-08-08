@@ -12,6 +12,7 @@
     <!-- Main View -->
     <sys:String x:Key="MainView.Navigation.OpenXenia">打开 Xenia</sys:String>
     <sys:String x:Key="MainView.Navigation.Library">游戏库</sys:String>
+    <sys:String x:Key="MainView.Navigation.AddGroup">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="MainView.Navigation.XeniaSettings">Xenia 设置</sys:String>
     <sys:String x:Key="MainView.Navigation.ManagePage">管理 Xenia</sys:String>
     <sys:String x:Key="MainView.Navigation.About">关于</sys:String>
@@ -25,8 +26,6 @@
     <sys:String x:Key="GroupNameDialog.Watermark">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="GroupNameDialog.Save">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="GroupSelectionDialog.Title">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="GroupSelectionDialog.Header">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="GroupSelectionDialog.SubHeader">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="GroupSelectionDialog.Message">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="GroupSelectionDialog.Confirm">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="GroupSelectionDialog.NoGroups.Title">#NOTTRANSLATED#</sys:String>
@@ -52,14 +51,8 @@
     <sys:String x:Key="GameButton.ContextFlyout.RemoveFromGroup.Error.Title">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="GameButton.ContextFlyout.RemoveFromGroup.Error.Message">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="LibraryPage.AddSelectedToGroup.Button">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="LibraryPage.Groups.ToolTip">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="LibraryPage.Groups.New.Header">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="LibraryPage.Groups.Ungrouped">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="LibraryPage.Groups.Delete.ToolTip">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="LibraryPage.Groups.Delete.Confirmation.Title">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="LibraryPage.Groups.Delete.Confirmation.Message">#NOTTRANSLATED#</sys:String>
-
-
     <!-- Library Page -->
     <sys:String x:Key="LibraryPage.Search.PlaceholderText">搜索...</sys:String>
     <sys:String x:Key="LibraryPage.Refresh.ToolTip">重新加载游戏库</sys:String>
@@ -446,12 +439,6 @@
     <sys:String x:Key="GameButton.ContextFlyout.Content.Screenshots.NoScreenshots.Message">未找到 {0} 的屏幕截图。</sys:String>
     <sys:String x:Key="GameButton.ContextFlyout.Content.Screenshots.Error.Title">打开文件夹失败</sys:String>
     <sys:String x:Key="GameButton.ContextFlyout.Content.Screenshots.Error.Message">打开屏幕截图文件夹时出错。&#10;{0}</sys:String>
-    <sys:String x:Key="GameButton.ContextFlyout.Content.GameLocation.Header">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="GameButton.ContextFlyout.Content.GameLocation.ToolTip">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="GameButton.ContextFlyout.Content.GameLocation.NoGameDir.Title">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="GameButton.ContextFlyout.Content.GameLocation.NoGameDir.Message">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="GameButton.ContextFlyout.Content.GameLocation.Error.Title">#NOTTRANSLATED#</sys:String>
-    <sys:String x:Key="GameButton.ContextFlyout.Content.GameLocation.Error.Message">#NOTTRANSLATED#</sys:String>
     <sys:String x:Key="GameButton.ContextFlyout.Patches.Header">补丁</sys:String>
     <sys:String x:Key="GameButton.ContextFlyout.Patches.Download.Header">下载</sys:String>
     <sys:String x:Key="GameButton.ContextFlyout.Patches.Download.ToolTip">从仓库下载补丁</sys:String>

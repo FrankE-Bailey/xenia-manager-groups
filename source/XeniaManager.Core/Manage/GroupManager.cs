@@ -17,6 +17,11 @@ public class GroupManager
     public static List<GameGroup> Groups { get; set; } = [];
 
     /// <summary>
+    /// Currently active group filter for the library. Null means show all games.
+    /// </summary>
+    public static Guid? ActiveFilterGroupId { get; private set; }
+
+    /// <summary>
     /// Builds a stable key used to associate a game with groups.
     /// </summary>
     public static string GetGameKey(Game game)
@@ -265,6 +270,11 @@ public class GroupManager
         }
 
         Groups.Remove(group);
+        if (ActiveFilterGroupId == groupId)
+        {
+            SetActiveFilter(null);
+        }
+
         SaveGroups();
         EventManager.Instance.OnGameGroupsChanged();
         Logger.Info<GroupManager>($"Deleted game group '{group.Name}' ({group.Id})");
@@ -305,6 +315,24 @@ public class GroupManager
     {
         string key = GetGameKey(game);
         return Groups.Any(g => g.GameKeys.Contains(key, StringComparer.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Sets the active library group filter and notifies listeners.
+    /// Pass null to clear the filter and show all games.
+    /// </summary>
+    public static void SetActiveFilter(Guid? groupId)
+    {
+        if (ActiveFilterGroupId == groupId)
+        {
+            return;
+        }
+
+        ActiveFilterGroupId = groupId;
+        Logger.Info<GroupManager>(groupId.HasValue
+            ? $"Active group filter set to {groupId}"
+            : "Active group filter cleared");
+        EventManager.Instance.OnGroupFilterChanged(groupId);
     }
 
     private static void TryRecoverFromBackup(string backupPath)

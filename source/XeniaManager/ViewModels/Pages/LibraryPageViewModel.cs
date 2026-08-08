@@ -60,8 +60,6 @@ public partial class LibraryPageViewModel : ViewModelBase
         _settings.Settings.Ui.Window.Library.ViewOption = ViewOption;
         _settings.SaveSettings();
         OnPropertyChanged(nameof(IsGridView));
-        OnPropertyChanged(nameof(IsFlatGridVisible));
-        OnPropertyChanged(nameof(IsFlatListVisible));
     }
 
     [RelayCommand]
@@ -283,24 +281,7 @@ public partial class LibraryPageViewModel : ViewModelBase
 
     // Games List
     [ObservableProperty] private ObservableCollection<GameItemViewModel> _games = [];
-    [ObservableProperty] private ObservableCollection<GameGroupSectionViewModel> _groupSections = [];
     private List<GameItemViewModel> _allGames = [];
-    private readonly Dictionary<Guid, bool> _expandedGroupState = [];
-    private bool _ungroupedExpanded = true;
-
-    /// <summary>
-    /// Whether any user-defined groups exist (switches library to sectioned view).
-    /// </summary>
-    public bool HasGroups => GroupManager.Groups.Count > 0;
-
-    public bool IsFlatGridVisible => IsGridView && !HasGroups;
-    public bool IsFlatListVisible => !IsGridView && !HasGroups;
-    public bool IsSectionedVisible => HasGroups;
-
-    /// <summary>
-    /// Groups for the toolbar flyout (name + delete).
-    /// </summary>
-    public ObservableCollection<GameGroup> AvailableGroups { get; } = [];
 
     // Selection properties for multiselect
     private int _selectedGamesCount;
@@ -322,6 +303,11 @@ public partial class LibraryPageViewModel : ViewModelBase
     // Search
     [ObservableProperty] private string _searchQuery = string.Empty;
 
+    /// <summary>
+    /// Active group filter id. Null shows the full library.
+    /// </summary>
+    [ObservableProperty] private Guid? _activeGroupFilterId;
+
     partial void OnSearchQueryChanged(string value)
     {
         // Debounce search to avoid filtering on every keystroke
@@ -337,6 +323,11 @@ public partial class LibraryPageViewModel : ViewModelBase
                 FilterGames();
             }
         }, TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
+    partial void OnActiveGroupFilterIdChanged(Guid? value)
+    {
+        FilterGames();
     }
 
     [RelayCommand]
@@ -356,11 +347,24 @@ public partial class LibraryPageViewModel : ViewModelBase
         // Load UI settings
         LoadUiSettings();
 
+        ActiveGroupFilterId = GroupManager.ActiveFilterGroupId;
         RefreshLibrary();
 
         _watcherService.NewGameFilesDetected += OnNewGameFilesDetected;
         EventManager.Instance.GameLibraryChanged += OnGameLibraryChanged;
+        EventManager.Instance.GroupFilterChanged += OnGroupFilterChanged;
         EventManager.Instance.GameGroupsChanged += OnGameGroupsChanged;
+    }
+
+    private void OnGroupFilterChanged(Guid? groupId)
+    {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnGroupFilterChanged(groupId));
+            return;
+        }
+
+        ActiveGroupFilterId = groupId;
     }
 
     private void OnGameGroupsChanged()
@@ -371,18 +375,8 @@ public partial class LibraryPageViewModel : ViewModelBase
             return;
         }
 
-        OnPropertyChanged(nameof(HasGroups));
-        RefreshAvailableGroups();
+        // Membership or filter may have changed
         FilterGames();
-    }
-
-    private void RefreshAvailableGroups()
-    {
-        AvailableGroups.Clear();
-        foreach (GameGroup group in GroupManager.Groups.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase))
-        {
-            AvailableGroups.Add(group);
-        }
     }
 
     /// <summary>
@@ -466,11 +460,16 @@ public partial class LibraryPageViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Filters and sorts games, then rebuilds the flat list and/or Steam-style group sections.
+    /// Filters the games collection based on the active group and search query.
     /// </summary>
     private void FilterGames()
     {
         IEnumerable<GameItemViewModel> query = _allGames;
+
+        if (ActiveGroupFilterId is Guid groupId)
+        {
+            query = query.Where(item => GroupManager.IsInGroup(groupId, item.Game));
+        }
 
         if (!string.IsNullOrWhiteSpace(SearchQuery))
         {
@@ -508,65 +507,6 @@ public partial class LibraryPageViewModel : ViewModelBase
         {
             Games.Add(item);
         }
-
-        RebuildGroupSections(filtered);
-        OnPropertyChanged(nameof(HasGroups));
-        OnPropertyChanged(nameof(IsFlatGridVisible));
-        OnPropertyChanged(nameof(IsFlatListVisible));
-        OnPropertyChanged(nameof(IsSectionedVisible));
-        RefreshAvailableGroups();
-    }
-
-    /// <summary>
-    /// Rebuilds collapsible group sections from the filtered game list.
-    /// </summary>
-    private void RebuildGroupSections(List<GameItemViewModel> filtered)
-    {
-        // Remember expand state
-        foreach (GameGroupSectionViewModel existing in GroupSections)
-        {
-            if (existing.GroupId is Guid id)
-            {
-                _expandedGroupState[id] = existing.IsExpanded;
-            }
-            else
-            {
-                _ungroupedExpanded = existing.IsExpanded;
-            }
-        }
-
-        GroupSections.Clear();
-
-        if (GroupManager.Groups.Count == 0)
-        {
-            return;
-        }
-
-        foreach (GameGroup group in GroupManager.Groups.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase))
-        {
-            List<GameItemViewModel> groupGames = filtered
-                .Where(g => GroupManager.IsInGroup(group.Id, g.Game))
-                .ToList();
-
-            GameGroupSectionViewModel section = new GameGroupSectionViewModel(group.Id, group.Name, this);
-            section.IsExpanded = _expandedGroupState.GetValueOrDefault(group.Id, true);
-            section.SetGames(groupGames);
-            GroupSections.Add(section);
-        }
-
-        List<GameItemViewModel> ungrouped = filtered
-            .Where(g => !GroupManager.IsInAnyGroup(g.Game))
-            .ToList();
-
-        GameGroupSectionViewModel ungroupedSection = new GameGroupSectionViewModel(
-            null,
-            LocalizationHelper.GetText("LibraryPage.Groups.Ungrouped"),
-            this)
-        {
-            IsExpanded = _ungroupedExpanded
-        };
-        ungroupedSection.SetGames(ungrouped);
-        GroupSections.Add(ungroupedSection);
     }
 
     [RelayCommand]
@@ -1896,52 +1836,6 @@ public partial class LibraryPageViewModel : ViewModelBase
         }
 
         return [clickedGame];
-    }
-
-    /// <summary>
-    /// Creates a new empty group from the Groups toolbar.
-    /// </summary>
-    [RelayCommand]
-    private async Task CreateGroup()
-    {
-        string? name = await GroupNameDialog.ShowAsync();
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return;
-        }
-
-        GroupManager.CreateGroup(name);
-    }
-
-    /// <summary>
-    /// Deletes a group after confirmation.
-    /// </summary>
-    public async Task DeleteGroupAsync(Guid groupId, string groupName)
-    {
-        bool confirmed = await _messageBoxService.ShowConfirmationAsync(
-            LocalizationHelper.GetText("LibraryPage.Groups.Delete.Confirmation.Title"),
-            string.Format(LocalizationHelper.GetText("LibraryPage.Groups.Delete.Confirmation.Message"), groupName));
-        if (!confirmed)
-        {
-            return;
-        }
-
-        GroupManager.DeleteGroup(groupId);
-        _expandedGroupState.Remove(groupId);
-    }
-
-    /// <summary>
-    /// Deletes a group selected from the Groups flyout (CommandParameter = GameGroup).
-    /// </summary>
-    [RelayCommand]
-    private async Task DeleteGroupFromFlyout(GameGroup? group)
-    {
-        if (group == null)
-        {
-            return;
-        }
-
-        await DeleteGroupAsync(group.Id, group.Name);
     }
 
     /// <summary>
